@@ -63,7 +63,7 @@ def create_payment_link(user_id: str, route_id: str, amount: str, purpose: str):
             if payment_url:
                 add_payment(user_id, route_id, float(amount), purpose, payment_link_id)
                 logging.info(f"✅ Платёжная ссылка создана: {payment_url[:100]}")
-                return payment_url
+                return payment_url, payment_link_id
             else:
                 logging.error("❌ Нет paymentUrl в ответе")
                 return None
