@@ -28,7 +28,7 @@ from database import (
     update_payment_status,
 )
 from routes_data import get_routes, get_route
-from services.payments import create_payment_link
+from services.payments import create_payment_link, setup_webhook
 
 logging.basicConfig(level=logging.INFO)
 
@@ -447,15 +447,8 @@ def tochka_webhook():
 
 
 if __name__ == "__main__":
-    import time
     from threading import Thread
-    from services.payments import setup_webhook
 
     Thread(target=lambda: app.run(host="0.0.0.0", port=10000)).start()
-
-    def delayed_setup():
-        time.sleep(5)
-        setup_webhook()
-
-    Thread(target=delayed_setup).start()
+    setup_webhook()
     asyncio.run(main())
