@@ -111,7 +111,7 @@ def setup_webhook():
             "url": "https://tomskgobot.onrender.com/webhook/tochka"
         }
 
-        response = req.put(url, json=payload, headers=headers, timeout=15)
+        response = req.put(url, json=payload, headers=headers, timeout=15, verify="russian_certs.pem")
         print(f"Webhook setup status: {response.status_code}")
         return response.status_code
     except Exception as e:
