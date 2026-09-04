@@ -387,13 +387,47 @@ async def main():
     dp.include_router(router)
     await dp.start_polling(bot)
 
-from flask import Flask
+from flask import Flask, request
 
 app = Flask(__name__)
 
 @app.route("/")
 def health():
     return "OK", 200
+
+
+@app.route("/webhook/tochka", methods=["GET", "POST"])
+def tochka_webhook():
+    import json
+
+    if request.method == "GET":
+        return "OK", 200
+
+    try:
+        data = json.loads(request.get_data(as_text=True))
+    except Exception:
+        return "OK", 200
+
+    payment_data = data.get("Data", data)
+
+    payment_link_id = payment_data.get("paymentLinkId", "")
+    status = payment_data.get("status", "")
+    payment_status = payment_data.get("paymentStatus", "")
+
+    if (
+        status in ("success", "confirmed", "paid", "APPROVED")
+        or payment_status in ("success", "confirmed", "paid", "APPROVED")
+    ):
+        update_payment_status(payment_link_id, "paid")
+
+        payment = get_payment_by_link_id(payment_link_id)
+        if payment:
+            user_id = payment["user_id"]
+            route_id = payment["route_id"]
+            add_purchase(user_id, route_id)
+
+    return "OK", 200
+
 
 if __name__ == "__main__":
     from threading import Thread
