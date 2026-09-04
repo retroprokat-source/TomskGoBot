@@ -28,7 +28,7 @@ from database import (
     update_payment_status,
 )
 from routes_data import get_routes, get_route
-from services.payments import create_payment_link, setup_webhook
+from services.payments import create_payment_link, setup_webhook, process_webhook
 
 logging.basicConfig(level=logging.INFO)
 
@@ -415,15 +415,11 @@ def health():
 
 @app.route("/webhook/tochka", methods=["GET", "POST"])
 def tochka_webhook():
-    import json
-
     if request.method == "GET":
         return "OK", 200
 
-    try:
-        data = json.loads(request.get_data(as_text=True))
-    except Exception:
-        return "OK", 200
+    raw_body = request.get_data(as_text=True)
+    data = process_webhook(raw_body)
 
     payment_data = data.get("Data", data)
 
