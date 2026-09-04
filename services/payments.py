@@ -1,4 +1,7 @@
+import json
 import uuid
+import base64
+import logging
 import requests
 
 from config import (
@@ -6,26 +9,19 @@ from config import (
     TOCHKA_CUSTOMER_CODE,
     TOCHKA_MERCHANT_ID,
     TOCHKA_CLIENT_ID,
-    BOT_URL
+    BOT_URL,
 )
+from database import add_payment
+
+CERT_FILE = "russian_certs.pem"
 
 
-def create_payment_link(
-    user_id: str,
-    route_id: str,
-    amount: str,
-    purpose: str,
-    webhook_url: str = "https://tomskgobot.onrender.com/webhook/tochka"
-):
+def create_payment_link(user_id: str, route_id: str, amount: str, purpose: str):
     """
     Создаёт платёжную ссылку в Точке.
-
-    Возвращает кортеж (payment_url, payment_link_id).
-    Если ошибка — (None, None).
+    Возвращает URL оплаты или None.
     """
-
     url = "https://enter.tochka.com/uapi/acquiring/v1.0/payments"
-
     payment_link_id = str(uuid.uuid4())
 
     payload = {
@@ -36,84 +32,90 @@ def create_payment_link(
             "purpose": purpose,
             "redirectUrl": BOT_URL,
             "failRedirectUrl": BOT_URL,
-            "webhookUrl": webhook_url,
+            "webhookUrl": "https://tomskgobot.onrender.com/webhook/tochka",
             "paymentMode": ["sbp", "card"],
             "saveCard": False,
             "preAuthorization": False,
             "ttl": 10080,
-            "paymentLinkId": payment_link_id
+            "paymentLinkId": payment_link_id,
         }
     }
 
     headers = {
         "Content-Type": "application/json",
         "Accept": "application/json",
-        "Authorization": f"Bearer {TOCHKA_API_TOKEN}"
+        "Authorization": f"Bearer {TOCHKA_API_TOKEN}",
     }
 
     try:
-        response = requests.post(
-            url,
-            json=payload,
-            headers=headers,
-            timeout=30,
-            verify="russian_certs.pem"
-        )
-    except Exception as e:
-        print(f"Ошибка при запросе к Точке: {e}")
-        return None, None
+        logging.info(f"Создание платежа: amount={amount}, purpose={purpose}")
+        response = requests.post(url, json=payload, headers=headers, timeout=30, verify=CERT_FILE)
 
-    if response.status_code == 200:
-        try:
+        logging.info(f"Ответ Точки: status={response.status_code}")
+
+        if response.status_code == 200:
             data = response.json()
-        except Exception:
-            return None, None
+            payment_url = (
+                data.get("Data", {}).get("paymentUrl")
+                or data.get("Data", {}).get("paymentLink")
+            )
 
-        payment_data = data.get("Data", {})
-        payment_url = payment_data.get("paymentUrl") or payment_data.get("paymentLink")
-        return payment_url, payment_link_id
+            if payment_url:
+                add_payment(user_id, route_id, float(amount), purpose, payment_link_id)
+                logging.info(f"✅ Платёжная ссылка создана: {payment_url[:100]}")
+                return payment_url
+            else:
+                logging.error("❌ Нет paymentUrl в ответе")
+                return None
+        else:
+            logging.error(f"❌ Ошибка Точки: {response.status_code} {response.text[:500]}")
+            return None
 
-    print(f"Точка вернула статус {response.status_code}")
-    print(f"Тело ответа: {response.text}")
-    return None, None
-
-
-def process_webhook(raw_body: str):
-    """
-    Обрабатывает входящий вебхук от Точки.
-
-    Возвращает dict с данными платежа или None.
-    """
-
-    try:
-        import json
-        data = json.loads(raw_body)
-    except Exception:
+    except Exception as e:
+        logging.error(f"❌ Ошибка создания платежа: {e}")
         return None
 
-    return data
 
 def setup_webhook():
+    """Регистрирует вебхук Точки."""
+    url = f"https://enter.tochka.com/uapi/webhook/v1.0/{TOCHKA_CLIENT_ID}"
+
+    headers = {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "Authorization": f"Bearer {TOCHKA_API_TOKEN}",
+    }
+
+    payload = {
+        "webhooksList": ["acquiringInternetPayment"],
+        "url": "https://tomskgobot.onrender.com/webhook/tochka",
+    }
+
     try:
-        import requests as req
-        from config import TOCHKA_API_TOKEN
+        response = requests.put(url, json=payload, headers=headers, timeout=15, verify=CERT_FILE)
+        logging.info(f"PUT: {response.status_code} {response.text[:300]}")
 
-        client_id = "5e3f88c12690b3086faf7fa0daf46efa"
-        url = f"https://enter.tochka.com/uapi/webhook/v1.0/{client_id}"
+        if response.status_code == 200:
+            logging.info("✅ Вебхук TomskGoBot зарегистрирован")
+            return True
+        else:
+            logging.error(f"❌ Ошибка: {response.status_code} {response.text}")
+            return False
 
-        headers = {
-            "Authorization": f"Bearer {TOCHKA_API_TOKEN}",
-            "Content-Type": "application/json"
-        }
-
-        payload = {
-            "webhooksList": ["acquiringInternetPayment"],
-            "url": "https://tomskgobot.onrender.com/webhook/tochka"
-        }
-
-        response = req.put(url, json=payload, headers=headers, timeout=15, verify="russian_certs.pem")
-        print(f"Webhook setup status: {response.status_code}")
-        return response.status_code
     except Exception as e:
-        print(f"Ошибка создания вебхука: {e}")
-        return None
+        logging.error(f"❌ Ошибка: {e}")
+        return False
+
+
+def process_webhook(raw_body: str) -> dict:
+    """Декодирует JWT-вебхук от Точки."""
+    try:
+        parts = raw_body.split(".")
+        if len(parts) < 2:
+            return {}
+        payload_b64 = parts[1] + "=" * (4 - len(parts[1]) % 4)
+        decoded = base64.b64decode(payload_b64).decode("utf-8")
+        return json.loads(decoded)
+    except Exception as e:
+        logging.error(f"❌ Ошибка декодирования вебхука: {e}")
+        return {}
