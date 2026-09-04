@@ -15,7 +15,7 @@ def create_payment_link(
     route_id: str,
     amount: str,
     purpose: str,
-    webhook_url: str = "https://your-service.onrender.com/webhook/tochka"
+    webhook_url: str = "https://tomskgobot.onrender.com/webhook/tochka"
 ) -> str | None:
     """
     Создаёт платёжную ссылку в Точке.
