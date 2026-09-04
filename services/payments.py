@@ -92,3 +92,28 @@ def process_webhook(raw_body: str):
         return None
 
     return data
+
+def setup_webhook():
+    try:
+        import requests as req
+        from config import TOCHKA_API_TOKEN
+
+        client_id = "5e3f88c12690b3086faf7fa0daf46efa"
+        url = f"https://enter.tochka.com/uapi/webhook/v1.0/{client_id}"
+
+        headers = {
+            "Authorization": f"Bearer {TOCHKA_API_TOKEN}",
+            "Content-Type": "application/json"
+        }
+
+        payload = {
+            "webhooksList": ["acquiringInternetPayment"],
+            "url": "https://tomskgobot.onrender.com/webhook/tochka"
+        }
+
+        response = req.put(url, json=payload, headers=headers, timeout=15)
+        print(f"Webhook setup status: {response.status_code}")
+        return response.status_code
+    except Exception as e:
+        print(f"Ошибка создания вебхука: {e}")
+        return None
