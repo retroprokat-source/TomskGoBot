@@ -288,7 +288,7 @@ async def buy_route(callback: CallbackQuery, state: FSMContext):
     amount = route["price"]
     purpose = f"Покупка маршрута {route['name']}"
 
-    payment_url = create_payment_link(
+    payment_url, payment_link_id = create_payment_link(
         user_id=str(callback.from_user.id),
         route_id=route_id,
         amount=amount,
@@ -300,7 +300,15 @@ async def buy_route(callback: CallbackQuery, state: FSMContext):
         await callback.answer()
         return
 
-    await state.update_data(route_id=route_id)
+    add_payment(
+        user_id=str(callback.from_user.id),
+        route_id=route_id,
+        amount=float(amount),
+        purpose=purpose,
+        payment_link_id=payment_link_id,
+    )
+
+    await state.update_data(route_id=route_id, payment_link_id=payment_link_id)
 
     await callback.message.edit_text(
         f"💳 Для покупки маршрута «{route['name']}» оплатите {amount} ₽.\n\n"
@@ -314,14 +322,23 @@ async def buy_route(callback: CallbackQuery, state: FSMContext):
 async def check_payment(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     route_id = data.get("route_id")
+    payment_link_id = data.get("payment_link_id")
 
     if not route_id:
         await callback.answer("Нет активной покупки")
         return
 
+    payment = get_payment_by_link_id(payment_link_id) if payment_link_id else None
+
     if has_purchase(str(callback.from_user.id), route_id):
         await callback.message.edit_text(
             "✅ Маршрут уже куплен!",
+            reply_markup=route_info_keyboard(route_id, True)
+        )
+    elif payment and payment["status"] == "paid":
+        add_purchase(str(callback.from_user.id), route_id)
+        await callback.message.edit_text(
+            "✅ Оплата подтверждена! Маршрут открыт.",
             reply_markup=route_info_keyboard(route_id, True)
         )
     else:
