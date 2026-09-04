@@ -16,11 +16,12 @@ def create_payment_link(
     amount: str,
     purpose: str,
     webhook_url: str = "https://tomskgobot.onrender.com/webhook/tochka"
-) -> str | None:
+):
     """
     Создаёт платёжную ссылку в Точке.
 
-    Возвращает URL для оплаты или None, если что-то пошло не так.
+    Возвращает кортеж (payment_url, payment_link_id).
+    Если ошибка — (None, None).
     """
 
     url = "https://enter.tochka.com/uapi/acquiring/v1.0/payments"
@@ -60,13 +61,13 @@ def create_payment_link(
         )
     except Exception as e:
         print(f"Ошибка при запросе к Точке: {e}")
-    return None, None
+        return None, None
 
     if response.status_code == 200:
         try:
             data = response.json()
         except Exception:
-            return None
+            return None, None
 
         payment_data = data.get("Data", {})
         payment_url = payment_data.get("paymentUrl") or payment_data.get("paymentLink")
@@ -74,7 +75,7 @@ def create_payment_link(
 
     print(f"Точка вернула статус {response.status_code}")
     print(f"Тело ответа: {response.text}")
-    return None
+    return None, None
 
 
 def process_webhook(raw_body: str):
