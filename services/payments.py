@@ -60,7 +60,7 @@ def create_payment_link(
         )
     except Exception as e:
         print(f"Ошибка при запросе к Точке: {e}")
-        return None
+    return None, None
 
     if response.status_code == 200:
         try:
@@ -70,7 +70,7 @@ def create_payment_link(
 
         payment_data = data.get("Data", {})
         payment_url = payment_data.get("paymentUrl") or payment_data.get("paymentLink")
-        return payment_url
+        return payment_url, payment_link_id
 
     print(f"Точка вернула статус {response.status_code}")
     print(f"Тело ответа: {response.text}")
