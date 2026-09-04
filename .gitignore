@@ -1,0 +1,29 @@
+# Файлы окружения
+.env
+.env.*
+
+# База данных
+*.db
+*.sqlite
+*.sqlite3
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+.venv/
+
+# Сертификаты
+*.pem
+
+# Логи
+*.log
+
+# IDE
+.vscode/
+.idea/
+.DS_Store
