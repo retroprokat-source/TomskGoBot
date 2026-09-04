@@ -447,9 +447,15 @@ def tochka_webhook():
 
 
 if __name__ == "__main__":
+    import time
     from threading import Thread
     from services.payments import setup_webhook
 
     Thread(target=lambda: app.run(host="0.0.0.0", port=10000)).start()
-    setup_webhook()
+
+    def delayed_setup():
+        time.sleep(5)
+        setup_webhook()
+
+    Thread(target=delayed_setup).start()
     asyncio.run(main())
