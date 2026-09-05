@@ -1,13 +1,13 @@
 import os
 
 # Токен бота
-BOT_TOKEN = os.getenv("BOT_TOKEN", "8934749824:AAGkpFAwCADGa6mhFX6Pi8RvI827tNmIPV0")
+BOT_TOKEN = os.getenv("BOT_TOKEN", "")
 
 # База данных
 DB_PATH = "excursion_bot.db"
 
 # Ссылка на бота
-BOT_URL = "https://t.me/TomskGoBot"
+BOT_URL = "https://t.me/CityGo24bot"
 
 # Точка (платежи)
 TOCHKA_API_TOKEN = os.getenv("TOCHKA_API_TOKEN", "")
