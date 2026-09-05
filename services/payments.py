@@ -19,7 +19,7 @@ CERT_FILE = "russian_certs.pem"
 def create_payment_link(user_id: str, route_id: str, amount: str, purpose: str):
     """
     Создаёт платёжную ссылку в Точке.
-    Возвращает URL оплаты или None.
+    Возвращает кортеж (payment_url, payment_link_id).
     """
     url = "https://enter.tochka.com/uapi/acquiring/v1.0/payments"
     payment_link_id = str(uuid.uuid4())
@@ -66,14 +66,14 @@ def create_payment_link(user_id: str, route_id: str, amount: str, purpose: str):
                 return payment_url, payment_link_id
             else:
                 logging.error("❌ Нет paymentUrl в ответе")
-                return None
+                return None, None
         else:
             logging.error(f"❌ Ошибка Точки: {response.status_code} {response.text[:500]}")
-            return None
+            return None, None
 
     except Exception as e:
         logging.error(f"❌ Ошибка создания платежа: {e}")
-        return None
+        return None, None
 
 
 def setup_webhook():
@@ -96,7 +96,7 @@ def setup_webhook():
         logging.info(f"PUT: {response.status_code} {response.text[:300]}")
 
         if response.status_code == 200:
-            logging.info("✅ Вебхук TomskGoBot зарегистрирован")
+            logging.info("✅ Вебхук CityGo24bot зарегистрирован")
             return True
         else:
             logging.error(f"❌ Ошибка: {response.status_code} {response.text}")
