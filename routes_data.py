@@ -1,6 +1,18 @@
+CITIES = [
+    {
+        "id": "tomsk",
+        "name": "Томск",
+        "country": "Россия",
+        "flag": "🇷🇺",
+        "is_active": True,
+    }
+]
+
+
 ROUTES = [
     {
         "id": "put_tomicha",
+        "city_id": "tomsk",
         "name": "🏛 Путь томича",
         "description": "Главный маршрут для первого знакомства с Томском. Пройдёте от площади Ленина до Университетской рощи.",
         "price": "1",
@@ -51,6 +63,7 @@ ROUTES = [
     },
     {
         "id": "kupechesky_tomsk",
+        "city_id": "tomsk",
         "name": "🏠 Купеческий Томск",
         "description": "Прогулка по нарядным купеческим особнякам. Деревянное зодчество и история богатого Томска.",
         "price": "1",
@@ -91,6 +104,7 @@ ROUTES = [
     },
     {
         "id": "universitetsky_tomsk",
+        "city_id": "tomsk",
         "name": "🎓 Университетский Томск",
         "description": "Маршрут по студенческому Томску. Главный корпус ТГУ, политех и Лагерный сад.",
         "price": "1",
@@ -120,6 +134,21 @@ ROUTES = [
         ]
     }
 ]
+
+
+def get_cities():
+    return CITIES
+
+
+def get_city(city_id: str):
+    for city in CITIES:
+        if city["id"] == city_id:
+            return city
+    return None
+
+
+def get_routes_by_city(city_id: str):
+    return [route for route in ROUTES if route["city_id"] == city_id]
 
 
 def get_route(route_id: str):
