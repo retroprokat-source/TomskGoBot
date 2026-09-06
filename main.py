@@ -43,7 +43,7 @@ class RouteState(StatesGroup):
 
 def main_menu_keyboard():
     buttons = [
-        [InlineKeyboardButton(text="🏛 Маршруты", callback_data="show_routes")],
+        [InlineKeyboardButton(text="🌍 Выбрать город", callback_data="show_routes")],
         [InlineKeyboardButton(text="🎓 Мои маршруты", callback_data="my_routes")],
     ]
     return InlineKeyboardMarkup(inline_keyboard=buttons)
@@ -141,7 +141,7 @@ async def city_soon(callback: CallbackQuery):
     await callback.answer("Этот город скоро появится!", show_alert=True)
 
 
-def navigation_keyboard(route_id: str, current_point: int, total_points: int, purchased: bool):
+def navigation_keyboard(route_id: str, current_point: int, total_points: int, purchased: bool, address: str = ""):
     buttons = []
 
     prev_button = InlineKeyboardButton(
@@ -160,6 +160,16 @@ def navigation_keyboard(route_id: str, current_point: int, total_points: int, pu
     else:
         buttons.append([prev_button, next_button])
 
+    if address:
+        yandex_url = f"https://yandex.ru/maps/?text={address}"
+        google_url = f"https://www.google.com/maps/search/{address}"
+        buttons.append(
+            [
+                InlineKeyboardButton(text="📍 Яндекс.Карты", url=yandex_url),
+                InlineKeyboardButton(text="📍 Google Maps", url=google_url),
+            ]
+        )
+
     buttons.append([InlineKeyboardButton(text="🗺️ К маршрутам", callback_data="show_routes")])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
@@ -177,8 +187,8 @@ def payment_keyboard(payment_url: str):
 async def cmd_start(message: Message):
     add_user(str(message.from_user.id), message.from_user.username)
     await message.answer(
-        "🏛 Добро пожаловать в бот-экскурсию по Томску!\n\n"
-        "Здесь можно купить маршрут и пройти его по точкам.\n"
+        "🏛 Добро пожаловать в Сити Гоу!\n\n"
+        "Выбирайте город, гуляйте по маршрутам и узнавайте новое.\n"
         "Первые 2 точки каждого маршрута — бесплатно.",
         reply_markup=main_menu_keyboard()
     )
@@ -324,9 +334,14 @@ async def show_point(callback: CallbackQuery, route, points, point_num: int, pur
 
     await callback.message.edit_text(
         text,
-        reply_markup=navigation_keyboard(route["id"], point_num, total, purchased)
+        reply_markup=navigation_keyboard(
+            route["id"],
+            point_num,
+            total,
+            purchased,
+            address=point["address"]
+        )
     )
-    await callback.answer()
 
 
 @router.callback_query(F.data.startswith("buy_route:"))
