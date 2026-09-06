@@ -27,7 +27,7 @@ from database import (
     get_payment_by_link_id,
     update_payment_status,
 )
-from routes_data import get_routes, get_route
+from routes_data import get_routes, get_route, get_cities, get_routes_by_city
 from services.payments import create_payment_link, setup_webhook, process_webhook
 
 logging.basicConfig(level=logging.INFO)
@@ -64,6 +64,31 @@ def routes_keyboard():
     buttons.append([InlineKeyboardButton(text="🏠 Главное меню", callback_data="main_menu")])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
+def cities_keyboard():
+    cities = get_cities()
+    buttons = []
+    for city in cities:
+        if city["is_active"]:
+            buttons.append(
+                [
+                    InlineKeyboardButton(
+                        text=f"{city['flag']} {city['name']}",
+                        callback_data=f"city_routes:{city['id']}"
+                    )
+                ]
+            )
+        else:
+            buttons.append(
+                [
+                    InlineKeyboardButton(
+                        text=f"{city['flag']} {city['name']} — скоро",
+                        callback_data="city_soon"
+                    )
+                ]
+            )
+    buttons.append([InlineKeyboardButton(text="🏠 Главное меню", callback_data="main_menu")])
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
 
 def route_info_keyboard(route_id: str, purchased: bool):
     buttons = []
@@ -82,6 +107,38 @@ def route_info_keyboard(route_id: str, purchased: bool):
 
     buttons.append([InlineKeyboardButton(text="⬅️ К маршрутам", callback_data="show_routes")])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+@router.callback_query(F.data.startswith("city_routes:"))
+async def city_routes(callback: CallbackQuery):
+    city_id = callback.data.split(":")[1]
+    city_routes = get_routes_by_city(city_id)
+
+    if not city_routes:
+        await callback.answer("В этом городе пока нет маршрутов")
+        return
+
+    buttons = []
+    for route in city_routes:
+        buttons.append(
+            [
+                InlineKeyboardButton(
+                    text=f"{route['name']} — {route['price']} ₽",
+                    callback_data=f"route_info:{route['id']}"
+                )
+            ]
+        )
+    buttons.append([InlineKeyboardButton(text="⬅️ К городам", callback_data="show_routes")])
+
+    await callback.message.edit_text(
+        "Выберите маршрут:",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons)
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data == "city_soon")
+async def city_soon(callback: CallbackQuery):
+    await callback.answer("Этот город скоро появится!", show_alert=True)
 
 
 def navigation_keyboard(route_id: str, current_point: int, total_points: int, purchased: bool):
@@ -139,8 +196,8 @@ async def show_main_menu(callback: CallbackQuery):
 @router.callback_query(F.data == "show_routes")
 async def show_routes(callback: CallbackQuery):
     await callback.message.edit_text(
-        "Выберите маршрут:",
-        reply_markup=routes_keyboard()
+        "Выберите город:",
+        reply_markup=cities_keyboard()
     )
     await callback.answer()
 
@@ -379,12 +436,10 @@ async def my_routes(callback: CallbackQuery):
 
 @router.message(Command("routes"))
 async def cmd_routes(message: Message):
-    routes = get_routes()
-    text = "Маршруты:\n\n"
-    for route in routes:
-        text += f"{route['name']} — {route['price']} ₽, {route['distance']}\n"
-        text += f"{route['description']}\n\n"
-    await message.answer(text, reply_markup=routes_keyboard())
+    await message.answer(
+        "Выберите город:",
+        reply_markup=cities_keyboard()
+    )
 
 
 @router.message(Command("my_routes"))
