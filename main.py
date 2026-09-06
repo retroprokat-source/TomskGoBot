@@ -161,8 +161,9 @@ def navigation_keyboard(route_id: str, current_point: int, total_points: int, pu
         buttons.append([prev_button, next_button])
 
     if address:
-        yandex_url = f"https://yandex.ru/maps/?text={address}"
-        google_url = f"https://www.google.com/maps/search/{address}"
+        full_address = f"Томск, {address}"
+        yandex_url = f"https://yandex.ru/maps/?text={full_address}"
+        google_url = f"https://www.google.com/maps/search/{full_address}"
         buttons.append(
             [
                 InlineKeyboardButton(text="📍 Яндекс.Карты", url=yandex_url),
