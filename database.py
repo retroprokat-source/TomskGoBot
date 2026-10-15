@@ -198,3 +198,10 @@ def update_payment_status(payment_link_id: str, status: str):
     )
     conn.commit()
     conn.close()
+
+def is_admin(user_id: str) -> bool:
+    from config import ADMIN_IDS
+    try:
+        return int(user_id) in ADMIN_IDS
+    except Exception:
+        return False
