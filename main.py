@@ -223,7 +223,7 @@ async def route_info(callback: CallbackQuery):
         await callback.answer("Маршрут не найден")
         return
 
-purchased = has_purchase(str(callback.from_user.id), route_id) or is_admin(str(callback.from_user.id))
+    purchased = has_purchase(str(callback.from_user.id), route_id) or is_admin(str(callback.from_user.id))
 
     points_count = len(route["points"])
 
@@ -268,7 +268,7 @@ async def start_route(callback: CallbackQuery):
         await callback.answer("Маршрут не найден")
         return
 
-purchased = has_purchase(str(callback.from_user.id), route_id) or is_admin(str(callback.from_user.id))
+    purchased = has_purchase(str(callback.from_user.id), route_id) or is_admin(str(callback.from_user.id))
 
     if not purchased:
         await callback.answer("Сначала купите маршрут")
@@ -294,7 +294,7 @@ async def navigate(callback: CallbackQuery):
         return
 
     points = route["points"]
-purchased = has_purchase(str(callback.from_user.id), route_id) or is_admin(str(callback.from_user.id))
+    purchased = has_purchase(str(callback.from_user.id), route_id) or is_admin(str(callback.from_user.id))
 
     if point_num > 2 and not purchased:
         await callback.message.edit_text(
