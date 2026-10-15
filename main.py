@@ -26,6 +26,7 @@ from database import (
     add_payment,
     get_payment_by_link_id,
     update_payment_status,
+    is_admin,
 )
 from routes_data import get_routes, get_route, get_cities, get_routes_by_city
 from services.payments import create_payment_link, setup_webhook, process_webhook
@@ -222,7 +223,7 @@ async def route_info(callback: CallbackQuery):
         await callback.answer("Маршрут не найден")
         return
 
-    purchased = has_purchase(str(callback.from_user.id), route_id)
+purchased = has_purchase(str(callback.from_user.id), route_id) or is_admin(str(callback.from_user.id))
 
     points_count = len(route["points"])
 
@@ -267,7 +268,7 @@ async def start_route(callback: CallbackQuery):
         await callback.answer("Маршрут не найден")
         return
 
-    purchased = has_purchase(str(callback.from_user.id), route_id)
+purchased = has_purchase(str(callback.from_user.id), route_id) or is_admin(str(callback.from_user.id))
 
     if not purchased:
         await callback.answer("Сначала купите маршрут")
@@ -293,7 +294,7 @@ async def navigate(callback: CallbackQuery):
         return
 
     points = route["points"]
-    purchased = has_purchase(str(callback.from_user.id), route_id)
+purchased = has_purchase(str(callback.from_user.id), route_id) or is_admin(str(callback.from_user.id))
 
     if point_num > 2 and not purchased:
         await callback.message.edit_text(
